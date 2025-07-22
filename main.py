@@ -30,5 +30,7 @@ def upload():
 
     return ('success', 200) if response.ok else ('fail', 500)
 
+
 if __name__ == '__main__':
-    app.run()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
