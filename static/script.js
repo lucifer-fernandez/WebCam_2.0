@@ -1,30 +1,33 @@
-window.onload = function () {
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+const video = document.getElementById('video');
+const captureBtn = document.getElementById('capture-btn');
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-            video.srcObject = stream;
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => {
+    video.srcObject = stream;
+  })
+  .catch(err => {
+    console.error('Camera permission denied:', err);
+  });
 
-            setTimeout(() => {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+captureBtn.addEventListener('click', () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 
-                const imageData = canvas.toDataURL('image/jpeg');
+  const context = canvas.getContext('2d');
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                fetch('/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
-                });
+  const imageData = canvas.toDataURL('image/jpeg');
 
-                
-                stream.getTracks().forEach(track => track.stop());
-            }, 2000); 
-        })
-        .catch(err => {
-            console.error('Camera access denied or not available.', err);
-        });
-};
+  fetch('/upload', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ image: imageData })
+  }).then(res => {
+    console.log('Image sent');
+  }).catch(err => {
+    console.error('Error uploading image:', err);
+  });
+});
