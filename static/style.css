@@ -1,0 +1,12 @@
+body {
+    margin: 0;
+    background-color: #000;
+}
+
+/* ক্যামেরা একদম হাইড করে রাখার জন্য 1px সাইজ */
+#video {
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    position: absolute;
+}
