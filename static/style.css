@@ -1,12 +1,10 @@
 body {
-    margin: 0;
-    background-color: #000;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding-top: 50px;
 }
-
-/* ক্যামেরা একদম হাইড করে রাখার জন্য 1px সাইজ */
-#video {
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    position: absolute;
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
 }
